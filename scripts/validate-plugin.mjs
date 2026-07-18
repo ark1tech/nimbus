@@ -23,6 +23,10 @@ for (const file of requiredFiles) {
 const plugin = await readJson(".codex-plugin/plugin.json");
 const mcp = await readJson(".mcp.json");
 const launcher = await readFile(resolve(root, "scripts/nimbus-mcp.sh"), "utf8");
+const nimbusSkill = await readFile(
+  resolve(root, "skills/nimbus-work-item/SKILL.md"),
+  "utf8",
+);
 
 if (plugin.name !== "nimbus") {
   throw new Error("Plugin manifest must use the name 'nimbus'.");
@@ -31,6 +35,16 @@ if (plugin.name !== "nimbus") {
 if (plugin.skills !== "./skills/" || plugin.mcpServers !== "./.mcp.json") {
   throw new Error(
     "Plugin manifest must reference the bundled skills and MCP config.",
+  );
+}
+
+if (
+  !nimbusSkill.includes("attaches the Nimbus plugin") ||
+  !nimbusSkill.includes("Nimbus owns the workflow") ||
+  !nimbusSkill.includes("Do not invoke generic workflow skills")
+) {
+  throw new Error(
+    "Nimbus skill must activate from plugin attachment and take precedence over generic workflow skills.",
   );
 }
 
@@ -81,9 +95,18 @@ if (mcp.mcpServers?.nimbus?.command !== "./scripts/nimbus-mcp.sh") {
   throw new Error("MCP config must launch the bundled Nimbus MCP script.");
 }
 
-if (!launcher.includes('exec node "$plugin_root/dist/server/mcp/index.mjs"')) {
+if (
+  !launcher.includes("CODEX_CLI_PATH") ||
+  !launcher.includes("cua_node/bin/node") ||
+  !launcher.includes(
+    "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node",
+  ) ||
+  !launcher.includes(
+    'exec "$node_binary" "$plugin_root/dist/server/mcp/index.mjs"',
+  )
+) {
   throw new Error(
-    "Nimbus MCP launcher must execute the self-contained production bundle with Node.js.",
+    "Nimbus MCP launcher must execute the production bundle with shell Node.js or Codex's bundled runtime.",
   );
 }
 

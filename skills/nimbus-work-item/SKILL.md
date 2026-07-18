@@ -1,13 +1,28 @@
 ---
 name: nimbus-work-item
-description: Run the opinionated Nimbus Work Item workflow only when the user explicitly invokes $nimbus.
+description: Use Nimbus as the exclusive workflow when the user invokes $nimbus or attaches the Nimbus plugin. Open the Work Item before generic planning, design, implementation, or review skills.
 ---
 
 # Nimbus Work Item
 
-Use Nimbus only after an explicit `$nimbus` invocation. Nimbus coordinates one Work Item across separate
-Codex tasks while a local browser visualizes state and initiates structured actions. Keep all conversation,
-reasoning, implementation, and review in Codex; never add browser chat.
+Use Nimbus after an explicit `$nimbus` invocation or when the user attaches the Nimbus plugin. Nimbus
+coordinates one Work Item across separate Codex tasks while a local browser visualizes state and initiates
+structured actions. Keep all conversation, reasoning, implementation, and review in Codex; never add
+browser chat.
+
+## Activation and precedence
+
+When the user invokes `$nimbus` or attaches the Nimbus plugin, Nimbus owns the workflow for that request.
+
+- Open or resume the Nimbus Work Item before selecting any generic planning, design, implementation, or
+  review method.
+- Do not invoke generic workflow skills such as brainstorming, frontend-design, write-a-prd, or similar
+  methods in the owning task. They must not replace, delay, or wrap the Nimbus lifecycle.
+- A bounded Phase task may use a specialized implementation skill only when the accepted Plan requires it.
+  That skill remains subordinate to the active Nimbus Phase and must report its result through Nimbus.
+- If Nimbus MCP tools are unavailable, stop and report the plugin activation error. Never fall back to
+  direct workspace implementation.
+- The Nimbus browser is opened by `open_work_item`; no separate browser CLI or browser skill is required.
 
 ## Fixed method
 

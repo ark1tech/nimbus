@@ -13,11 +13,14 @@ const expectedTools: string[] = [
   "record_handoff_site",
 ];
 
-async function main(): Promise<void> {
+async function assertTools(
+  environment: Record<string, string> | undefined,
+): Promise<number> {
   const transport = new StdioClientTransport({
     command: "sh",
     args: ["scripts/nimbus-mcp.sh"],
     cwd: process.cwd(),
+    ...(environment === undefined ? {} : { env: environment }),
     stderr: "pipe",
   });
   const client = new Client({ name: "nimbus-plugin-smoke", version: "0.1.0" });
@@ -49,12 +52,26 @@ async function main(): Promise<void> {
       );
     }
 
-    process.stdout.write(
-      `Nimbus bundled MCP smoke passed with ${actualTools.length} tools.\n`,
-    );
+    return actualTools.length;
   } finally {
     await client.close();
   }
+}
+
+async function main(): Promise<void> {
+  const defaultToolCount = await assertTools(undefined);
+  const restrictedToolCount = await assertTools({
+    HOME: process.env.HOME ?? "/Users/ray",
+    PATH: "/usr/bin:/bin",
+    CODEX_CLI_PATH: "/Applications/ChatGPT.app/Contents/Resources/codex",
+  });
+  const bundledToolCount = await assertTools({
+    HOME: process.env.HOME ?? "/Users/ray",
+    PATH: "/usr/bin:/bin",
+  });
+  process.stdout.write(
+    `Nimbus bundled MCP smoke passed with ${defaultToolCount} shell tools, ${restrictedToolCount} configured Codex tools, and ${bundledToolCount} bundled-runtime tools.\n`,
+  );
 }
 
 void main().catch((error: unknown): void => {
