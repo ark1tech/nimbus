@@ -75,14 +75,12 @@ Keep one durable Work Item.
     );
   });
 
-  it("round-trips the full demo Work Item including decision chat and revision digests", () => {
+  it("round-trips the full demo Work Item including accepted decisions and revisions", () => {
     const original = createDemoWorkItem();
     const markdown = serializeWorkItemMarkdown(original);
 
     expect(markdown.match(/^# /gm)).toHaveLength(5);
-    expect(markdown).toContain(
-      "Accepted digest: one resumable, read-only chat per Decision",
-    );
+    expect(markdown).toContain("<summary>Revision history</summary>");
     expect(parseWorkItemMarkdown(markdown)).toEqual(original);
   });
 

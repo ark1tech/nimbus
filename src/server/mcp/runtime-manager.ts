@@ -22,13 +22,13 @@ import {
   type NimbusWorkItem,
   type NimbusWorkItemStore,
 } from "../http/types";
-import { createMarkdownWorkItemStore } from "../markdown-store";
 import {
   createFetchHandoffSiteReachabilityProbe,
   createPublicationAttemptToken,
   HandoffSitePublisher,
   sleepForPublicationRetry,
 } from "../publish/handoff-site-publisher";
+import { createRuntimeMarkdownWorkItemStore } from "../runtime-markdown-store";
 import type {
   BeginPlanItemInput,
   NimbusMcpAdapter,
@@ -116,7 +116,7 @@ export class NimbusRuntimeManager implements NimbusMcpAdapter {
     const server = this.server;
     this.server = null;
     try {
-      if (server !== null) {
+      if (server !== null && server.listening) {
         await new Promise<void>((resolve, reject) => {
           server.close((error?: Error): void => {
             if (error === undefined) resolve();
@@ -150,10 +150,9 @@ export class NimbusRuntimeManager implements NimbusMcpAdapter {
       "nimbus",
       `${input.workItemId}.md`,
     );
-    // Package 2 owns the canonical Markdown store. This cast keeps the runtime independent of its internal parser.
-    const store = createMarkdownWorkItemStore({
+    const store = createRuntimeMarkdownWorkItemStore({
       filePath,
-    }) as unknown as NimbusWorkItemStore;
+    });
     const initialWorkItem = await this.loadOrCreateWorkItem(
       input,
       store,
@@ -233,9 +232,7 @@ export class NimbusRuntimeManager implements NimbusMcpAdapter {
     return taskGateway.startTask(input);
   }
 
-  private async getTaskGateway(
-    projectRoot: string,
-  ): Promise<CodexTaskGateway> {
+  private async getTaskGateway(projectRoot: string): Promise<CodexTaskGateway> {
     if (this.taskGateway !== null) {
       if (this.taskGatewayProjectRoot !== projectRoot) {
         throw new Error(
