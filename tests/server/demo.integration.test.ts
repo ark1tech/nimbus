@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { createDemoRuntime } from "../../src/server/demo";
+import { createDemoRuntime, createDemoWorkItem } from "../../src/server/demo";
+import type { PresentDecisionInput } from "../../src/server/mcp/contracts";
 
 const workItemHash = async (
   runtime: ReturnType<typeof createDemoRuntime>,
@@ -10,6 +11,32 @@ const waitForRuntimeMutation = async (): Promise<void> => {
   await new Promise<void>((resolve) => {
     setTimeout(resolve, 0);
   });
+};
+
+const decisionInput: PresentDecisionInput["decision"] = {
+  id: "D-01",
+  question: "Where should interrogation happen?",
+  context: "Deep questions must not consume implementation context.",
+  options: [
+    {
+      id: "D-01/A",
+      label: "Forked task",
+      explanation: "Use a separate Codex task.",
+      concreteEffects: ["Keeps context isolated"],
+      pros: ["Deep exploration"],
+      cons: ["Creates task lifecycle work"],
+    },
+    {
+      id: "D-01/B",
+      label: "Main task",
+      explanation: "Keep questions in implementation.",
+      concreteEffects: ["Shares context"],
+      pros: ["Fewer tasks"],
+      cons: ["Noisy context"],
+    },
+  ],
+  recommendationOptionId: "D-01/A",
+  recommendationReason: "The implementation task remains focused.",
 };
 
 describe("Nimbus runtime lifecycle", () => {
@@ -23,31 +50,7 @@ describe("Nimbus runtime lifecycle", () => {
     const decision = runtime.presentDecision({
       workItemId: "NIM-001",
       expectedDocumentHash: await workItemHash(runtime),
-      decision: {
-        id: "D-01",
-        question: "Where should interrogation happen?",
-        context: "Deep questions must not consume implementation context.",
-        options: [
-          {
-            id: "D-01/A",
-            label: "Forked task",
-            explanation: "Use a separate Codex task.",
-            concreteEffects: ["Keeps context isolated"],
-            pros: ["Deep exploration"],
-            cons: ["Creates task lifecycle work"],
-          },
-          {
-            id: "D-01/B",
-            label: "Main task",
-            explanation: "Keep questions in implementation.",
-            concreteEffects: ["Shares context"],
-            pros: ["Fewer tasks"],
-            cons: ["Noisy context"],
-          },
-        ],
-        recommendationOptionId: "D-01/A",
-        recommendationReason: "The implementation task remains focused.",
-      },
+      decision: decisionInput,
     });
     await waitForRuntimeMutation();
     await runtime.selectDecisionOption(
@@ -129,5 +132,55 @@ describe("Nimbus runtime lifecycle", () => {
     await runtime.acceptHandoff(await workItemHash(runtime));
     await expect(handoff).resolves.toMatchObject({ accepted: true });
     expect((await runtime.getWorkItem()).workItem.phase).toBe("complete");
+  });
+
+  it("resumes an exact persisted pending Decision", async (): Promise<void> => {
+    const initialWorkItem = {
+      ...createDemoWorkItem(),
+      decisions: [
+        { ...decisionInput, selectedOptionId: null, rationale: null },
+      ],
+    };
+    const runtime = createDemoRuntime({
+      initialWorkItem,
+      store: null,
+      reviewUrl: (): string => "http://127.0.0.1:5173",
+      repositoryRoot: process.cwd(),
+    });
+    await expect(
+      runtime.selectDecisionOption(
+        "D-01",
+        "D-01/A",
+        "No Grill task is waiting yet.",
+        await workItemHash(runtime),
+      ),
+    ).rejects.toMatchObject({
+      message: "Decision is not awaiting a selection",
+    });
+    expect(
+      (await runtime.getWorkItem()).workItem.decisions[0]?.selectedOptionId,
+    ).toBeNull();
+    const resumed = runtime.presentDecision({
+      workItemId: "NIM-001",
+      expectedDocumentHash: await workItemHash(runtime),
+      decision: decisionInput,
+    });
+    await waitForRuntimeMutation();
+    await runtime.selectDecisionOption(
+      "D-01",
+      "D-01/A",
+      "Resume the persisted Decision.",
+      await workItemHash(runtime),
+    );
+    await expect(resumed).resolves.toMatchObject({ workItemId: "NIM-001" });
+    await expect(
+      runtime.presentDecision({
+        workItemId: "NIM-001",
+        expectedDocumentHash: await workItemHash(runtime),
+        decision: { ...decisionInput, question: "Conflicting question?" },
+      }),
+    ).rejects.toMatchObject({
+      message: "Decision ID conflicts with existing content",
+    });
   });
 });

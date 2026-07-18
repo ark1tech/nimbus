@@ -250,6 +250,17 @@ const assertPhase = (
     );
 };
 
+const toDecisionInput = (
+  decision: NimbusWorkItem["decisions"][number],
+): PresentDecisionInput["decision"] => ({
+  id: decision.id,
+  question: decision.question,
+  context: decision.context,
+  options: decision.options,
+  recommendationOptionId: decision.recommendationOptionId,
+  recommendationReason: decision.recommendationReason,
+});
+
 const validateEvidence = async (
   repositoryRoot: string,
   evidence: RuntimeEvidence[],
@@ -355,31 +366,55 @@ export const createDemoRuntime = (
       };
     },
     presentDecision: async (input: PresentDecisionInput): Promise<unknown> => {
-      const next = await mutate(
+      const current = await store.read();
+      assertExpectedHash(
         input.expectedDocumentHash,
-        `Presented ${input.decision.id}.`,
-        (current) => {
-          assertWorkItem(current, input.workItemId);
-          assertPhase(current, ["grill"], "Presenting a Decision");
-          if (
-            current.decisions.some(
-              (decision) => decision.id === input.decision.id,
-            )
-          )
-            throw new HttpProblem(
-              409,
-              "Decision ID already exists",
-              `${input.decision.id} is already present.`,
-            );
-          return {
-            ...current,
-            decisions: [
-              ...current.decisions,
-              { ...input.decision, selectedOptionId: null, rationale: null },
-            ],
-          };
-        },
+        hashWorkItem(current),
       );
+      assertWorkItem(current, input.workItemId);
+      assertPhase(current, ["grill"], "Presenting a Decision");
+      const existing = current.decisions.find(
+        (decision) => decision.id === input.decision.id,
+      );
+      if (
+        existing !== undefined &&
+        stableStringify(toDecisionInput(existing)) !==
+          stableStringify(input.decision)
+      )
+        throw new HttpProblem(
+          409,
+          "Decision ID conflicts with existing content",
+          `${input.decision.id} is already assigned to another Decision definition.`,
+        );
+      if (existing !== undefined && existing.selectedOptionId !== null)
+        return {
+          workItemId: current.id,
+          documentHash: hashWorkItem(current),
+          selectedOptionId: existing.selectedOptionId,
+        };
+      const next =
+        existing === undefined
+          ? await save(
+              {
+                ...current,
+                decisions: [
+                  ...current.decisions,
+                  {
+                    ...input.decision,
+                    selectedOptionId: null,
+                    rationale: null,
+                  },
+                ],
+              },
+              `Presented ${input.decision.id}.`,
+            )
+          : await state();
+      if (pendingDecision.has(input.decision.id))
+        throw new HttpProblem(
+          409,
+          "Decision is already awaiting a selection",
+          `${input.decision.id} already has a waiting Grill task.`,
+        );
       const waiting = pending(`Decision ${input.decision.id}`);
       pendingDecision.set(input.decision.id, waiting.action);
       return waiting.promise.then(() => ({
@@ -393,6 +428,13 @@ export const createDemoRuntime = (
       rationale,
       expectedDocumentHash,
     ) => {
+      const waiting = pendingDecision.get(decisionId);
+      if (waiting === undefined)
+        throw new HttpProblem(
+          409,
+          "Decision is not awaiting a selection",
+          `${decisionId} has no waiting Grill task.`,
+        );
       const next = await mutate(
         expectedDocumentHash,
         `Accepted ${optionId} for ${decisionId}.`,
@@ -429,13 +471,6 @@ export const createDemoRuntime = (
           };
         },
       );
-      const waiting = pendingDecision.get(decisionId);
-      if (waiting === undefined)
-        throw new HttpProblem(
-          409,
-          "Decision is not awaiting a selection",
-          `${decisionId} has no waiting Grill task.`,
-        );
       pendingDecision.delete(decisionId);
       waiting.resolve({
         decisionId,
