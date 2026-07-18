@@ -1,21 +1,39 @@
 {
   "name": "nimbus",
-  "version": "0.1.0",
+  "version": "0.1.0+codex.20260718075549",
   "description": "Guide Codex work through grilling, planning, implementation, review, and an evidence-backed handoff.",
   "author": {
     "name": "Nimbus"
   },
   "license": "UNLICENSED",
-  "keywords": ["coding", "planning", "decisions", "documentation", "handoff"],
+  "keywords": [
+    "coding",
+    "planning",
+    "decisions",
+    "documentation",
+    "handoff"
+  ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Nimbus",
     "shortDescription": "Guide one evidence-backed Codex Work Item",
     "longDescription": "A local browser control plane for explicit $nimbus workflows: grill consequential choices, approve a plan, map implementation evidence, reconcile the result, and prepare or publish a handoff.",
-    "defaultPrompt": "Use $nimbus to open a Work Item, grill consequential decisions, approve the plan, map implementation evidence, review the result, and prepare the handoff.",
+    "defaultPrompt": [
+      "$nimbus Add server-side sessions so users stay signed in across browser restarts and can revoke other devices.",
+      "$nimbus Add role-based access control so admins manage teammates while members only access assigned projects.",
+      "$nimbus Add a searchable activity feed with filters for actor, action, project, and date."
+    ],
     "developerName": "Nimbus",
     "category": "Developer Tools",
-    "capabilities": ["Interactive", "Read", "Write"]
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "brandColor": "#6C4CF1",
+    "composerIcon": "./assets/nimbus_logo.png",
+    "logo": "./assets/nimbus_logo.png",
+    "screenshots": []
   }
 }

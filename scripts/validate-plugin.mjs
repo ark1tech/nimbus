@@ -6,6 +6,7 @@ const requiredFiles = [
   ".codex-plugin/plugin.json",
   ".mcp.json",
   "skills/nimbus-work-item/SKILL.md",
+  "assets/nimbus_logo.png",
   "scripts/nimbus-mcp.sh",
   "dist/server/mcp/index.mjs",
   "src/server/mcp/index.ts",
@@ -30,6 +31,49 @@ if (plugin.name !== "nimbus") {
 if (plugin.skills !== "./skills/" || plugin.mcpServers !== "./.mcp.json") {
   throw new Error(
     "Plugin manifest must reference the bundled skills and MCP config.",
+  );
+}
+
+const pluginInterface = plugin.interface;
+if (
+  pluginInterface?.logo !== "./assets/nimbus_logo.png" ||
+  pluginInterface?.composerIcon !== "./assets/nimbus_logo.png"
+) {
+  throw new Error(
+    "Plugin presentation must use the bundled Nimbus logo for the detail page and composer.",
+  );
+}
+
+if (!/^#[0-9A-F]{6}$/i.test(pluginInterface.brandColor)) {
+  throw new Error("Plugin presentation must define a hexadecimal brand color.");
+}
+
+if (
+  !Array.isArray(pluginInterface.defaultPrompt) ||
+  pluginInterface.defaultPrompt.length !== 3
+) {
+  throw new Error("Plugin presentation must define exactly three starter prompts.");
+}
+
+for (const prompt of pluginInterface.defaultPrompt) {
+  if (
+    typeof prompt !== "string" ||
+    prompt.trim().length === 0 ||
+    prompt.length > 128 ||
+    !prompt.startsWith("$nimbus ")
+  ) {
+    throw new Error(
+      "Every starter prompt must explicitly invoke $nimbus and contain at most 128 characters.",
+    );
+  }
+}
+
+if (
+  !Array.isArray(pluginInterface.screenshots) ||
+  pluginInterface.screenshots.length !== 0
+) {
+  throw new Error(
+    "Nimbus must use the generated prompt presentation without custom screenshots.",
   );
 }
 
