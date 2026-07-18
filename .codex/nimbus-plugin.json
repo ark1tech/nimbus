@@ -1,0 +1,23 @@
+{
+  "name": "nimbus",
+  "version": "0.1.0",
+  "description": "Nimbus personal decision workspace plugin",
+  "author": {
+    "name": "Ray"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Nimbus",
+    "shortDescription": "A personal workspace for durable decisions.",
+    "longDescription": "Nimbus keeps decision work, intent, and reality connected in Codex.",
+    "developerName": "Ray",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Help me make and record a durable decision in Nimbus."
+    ],
+    "composerIcon": "./assets/nimbus_logo.png",
+    "logo": "./assets/nimbus_logo.png",
+    "logoDark": "./assets/nimbus_logo.png"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "nimbus": {
+      "command": "./scripts/nimbus-mcp.sh",
+      "cwd": "."
+    }
+  }
+}
