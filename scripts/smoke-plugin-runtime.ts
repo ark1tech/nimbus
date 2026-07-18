@@ -7,7 +7,7 @@ async function main(): Promise<void> {
   const runtime = createDemoRuntime({
     initialWorkItem: null,
     store: null,
-    reviewUrl: `${baseUrl}?token=${token}`,
+    reviewUrl: (): string => `${baseUrl}?token=${token}`,
     repositoryRoot: process.cwd(),
   });
   const server = await startDemoServer({

@@ -17,7 +17,7 @@ describe("Nimbus runtime lifecycle", () => {
     const runtime = createDemoRuntime({
       initialWorkItem: null,
       store: null,
-      reviewUrl: "http://127.0.0.1:5173",
+      reviewUrl: (): string => "http://127.0.0.1:5173",
       repositoryRoot: process.cwd(),
     });
     const decision = runtime.presentDecision({

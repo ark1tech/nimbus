@@ -34,7 +34,7 @@ import type {
 export interface DemoRuntimeOptions {
   store: NimbusWorkItemStore | null;
   initialWorkItem: NimbusWorkItem | null;
-  reviewUrl: string;
+  reviewUrl: () => string;
   repositoryRoot: string;
   onPublicationRequested?: (input: PublicationRequestInput) => Promise<PublicationAttempt>;
   onHandoffSiteRecorded?: (
@@ -350,7 +350,7 @@ export const createDemoRuntime = (
         );
       return {
         workItemId: current.id,
-        reviewUrl: options.reviewUrl,
+        reviewUrl: options.reviewUrl(),
         documentHash: hashWorkItem(current),
       };
     },
@@ -929,7 +929,7 @@ export const startStandaloneDemo = async (): Promise<void> => {
   const runtime = createDemoRuntime({
     store: null,
     initialWorkItem: null,
-    reviewUrl: `http://${NIMBUS_HOST}:${NIMBUS_PORT}`,
+    reviewUrl: (): string => `http://${NIMBUS_HOST}:${NIMBUS_PORT}`,
     repositoryRoot: process.cwd(),
     onPublicationRequested: undefined,
   });
@@ -941,10 +941,3 @@ export const startStandaloneDemo = async (): Promise<void> => {
     sessionToken: null,
   });
 };
-
-if (
-  process.argv[1] !== undefined &&
-  import.meta.url === new URL(process.argv[1], "file:").href
-) {
-  void startStandaloneDemo();
-}

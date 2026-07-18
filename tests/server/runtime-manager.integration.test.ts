@@ -42,6 +42,24 @@ describe("Nimbus installed runtime", () => {
       expect(markdown).toContain("id: TEST-001");
       expect(markdown).toContain("# Brief");
       expect(openedUrls).toHaveLength(1);
+      const openedUrlText = openedUrls[0];
+      if (openedUrlText === undefined)
+        throw new Error("Nimbus did not launch its Work Item browser URL.");
+      const openedUrl = new URL(openedUrlText);
+      expect(openedUrl.port).not.toBe("0");
+      const token = openedUrl.searchParams.get("token");
+      if (token === null)
+        throw new Error("Nimbus Work Item browser URL is missing its token.");
+      const response = await fetch(new URL("/api/work-item", openedUrl), {
+        headers: {
+          "X-Nimbus-Token": token,
+        },
+      });
+      expect(response.status).toBe(200);
+      const state = (await response.json()) as {
+        workItem?: { id?: unknown };
+      };
+      expect(state.workItem?.id).toBe("TEST-001");
     } finally {
       await manager.close();
       await rm(projectRoot, { recursive: true, force: true });

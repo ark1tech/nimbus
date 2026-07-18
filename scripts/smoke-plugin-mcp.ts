@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
@@ -12,6 +14,34 @@ const expectedTools: string[] = [
   "present_handoff",
   "record_handoff_site",
 ];
+
+const assertBundleHasNoStandaloneDemo = async (): Promise<void> => {
+  const bundle = await readFile(
+    new URL("../dist/server/mcp/index.mjs", import.meta.url),
+    "utf8",
+  );
+  if (bundle.includes("startStandaloneDemo"))
+    throw new Error(
+      "Nimbus MCP bundle must not start the seeded standalone demo server.",
+    );
+};
+
+const waitForProcessExit = async (processId: number): Promise<void> => {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    try {
+      process.kill(processId, 0);
+    } catch (error: unknown) {
+      if (error instanceof Error && "code" in error && error.code === "ESRCH")
+        return;
+      throw error;
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, 50));
+  }
+  process.kill(processId, "SIGKILL");
+  throw new Error(
+    `Nimbus MCP process ${processId} stayed alive after its client disconnected.`,
+  );
+};
 
 async function assertTools(
   environment: Record<string, string> | undefined,
@@ -71,11 +101,14 @@ async function assertTools(
 
     return actualTools.length;
   } finally {
+    const processId = transport.pid;
     await client.close();
+    if (processId !== null) await waitForProcessExit(processId);
   }
 }
 
 async function main(): Promise<void> {
+  await assertBundleHasNoStandaloneDemo();
   const defaultToolCount = await assertTools(undefined);
   const restrictedToolCount = await assertTools({
     HOME: process.env.HOME ?? "/Users/ray",

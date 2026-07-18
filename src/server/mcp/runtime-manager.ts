@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import type { Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
@@ -53,6 +54,7 @@ export class NimbusRuntimeManager implements NimbusMcpAdapter {
   private readonly options: NimbusRuntimeManagerOptions;
   private readonly sessionToken: string;
   private activeWorkItemId: string | null = null;
+  private activePort: number | null = null;
   private runtime: NimbusRuntime | null = null;
   private server: Server | null = null;
   private taskGateway: CodexTaskGateway | null = null;
@@ -134,6 +136,7 @@ export class NimbusRuntimeManager implements NimbusMcpAdapter {
     }
     this.runtime = null;
     this.activeWorkItemId = null;
+    this.activePort = null;
   }
 
   private async startRuntime(input: OpenWorkItemInput): Promise<void> {
@@ -162,7 +165,7 @@ export class NimbusRuntimeManager implements NimbusMcpAdapter {
     const runtime = createDemoRuntime({
       store,
       initialWorkItem,
-      reviewUrl: this.reviewUrl(),
+      reviewUrl: (): string => this.reviewUrl(),
       repositoryRoot: projectRoot,
       onPublicationRequested: async ({
         workItem,
@@ -197,6 +200,7 @@ export class NimbusRuntimeManager implements NimbusMcpAdapter {
       webRoot,
       sessionToken: this.sessionToken,
     });
+    this.activePort = requireTcpPort(server.address());
     this.activeWorkItemId = input.workItemId;
     this.runtime = runtime;
     this.server = server;
@@ -316,9 +320,18 @@ export class NimbusRuntimeManager implements NimbusMcpAdapter {
   }
 
   private reviewUrl(): string {
-    return `http://${this.options.host}:${this.options.port}?token=${encodeURIComponent(this.sessionToken)}`;
+    const port = this.activePort ?? this.options.port;
+    return `http://${this.options.host}:${port}?token=${encodeURIComponent(this.sessionToken)}`;
   }
 }
+
+const requireTcpPort = (address: AddressInfo | string | null): number => {
+  if (address === null || typeof address === "string")
+    throw new Error(
+      `Nimbus browser server did not expose a TCP address: ${String(address)}.`,
+    );
+  return address.port;
+};
 
 const createAcceptedHandoffMarkdown = (workItem: NimbusWorkItem): string => {
   if (workItem.handoff === null) {
@@ -391,9 +404,12 @@ export async function launchSystemBrowser(url: string): Promise<void> {
 export function createDefaultRuntimeManager(
   pluginRoot: string,
 ): NimbusRuntimeManager {
-  const port = Number(process.env.NIMBUS_PORT ?? "4318");
-  if (!Number.isInteger(port) || port < 1 || port > 65_535)
-    throw new Error(`NIMBUS_PORT must be a valid TCP port: ${String(port)}.`);
+  const configuredPort = process.env.NIMBUS_PORT;
+  const port = configuredPort === undefined ? 0 : Number(configuredPort);
+  if (!Number.isInteger(port) || port < 0 || port > 65_535)
+    throw new Error(
+      `NIMBUS_PORT must be 0 or a valid TCP port: ${String(port)}.`,
+    );
   return new NimbusRuntimeManager({
     pluginRoot,
     host: NIMBUS_HOST,
