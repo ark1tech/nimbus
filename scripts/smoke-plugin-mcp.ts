@@ -1,0 +1,65 @@
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+
+const expectedTools: string[] = [
+  "open_work_item",
+  "present_decision",
+  "present_plan",
+  "begin_plan_item",
+  "report_implementation_item",
+  "present_review",
+  "publish_investigation_conclusion",
+  "present_handoff",
+  "record_handoff_site",
+];
+
+async function main(): Promise<void> {
+  const transport = new StdioClientTransport({
+    command: "sh",
+    args: ["scripts/nimbus-mcp.sh"],
+    cwd: process.cwd(),
+    stderr: "pipe",
+  });
+  const client = new Client({ name: "nimbus-plugin-smoke", version: "0.1.0" });
+  let serverStderr = "";
+  transport.stderr?.on("data", (chunk: Buffer): void => {
+    serverStderr += chunk.toString("utf8");
+  });
+
+  try {
+    try {
+      await client.connect(transport);
+    } catch (error: unknown) {
+      throw new Error(
+        `Nimbus MCP bundle closed during initialization. Server stderr: ${serverStderr.trim() || "<empty>"}`,
+        { cause: error },
+      );
+    }
+    const response = await client.listTools();
+    const actualTools: string[] = response.tools
+      .map((tool) => tool.name)
+      .sort();
+    const missingTools: string[] = expectedTools.filter(
+      (tool) => !actualTools.includes(tool),
+    );
+
+    if (missingTools.length > 0) {
+      throw new Error(
+        `Nimbus MCP bundle is missing tools: ${missingTools.join(", ")}. Advertised tools: ${actualTools.join(", ")}.`,
+      );
+    }
+
+    process.stdout.write(
+      `Nimbus bundled MCP smoke passed with ${actualTools.length} tools.\n`,
+    );
+  } finally {
+    await client.close();
+  }
+}
+
+void main().catch((error: unknown): void => {
+  process.stderr.write(
+    `Nimbus bundled MCP smoke failed: ${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
+  );
+  process.exitCode = 1;
+});
