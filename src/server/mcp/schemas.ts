@@ -1,6 +1,33 @@
 import { z } from "zod";
 
-const artifactId = z.string().regex(/^(?:D-\d+|D-\d+\/[A-Z]+|P-\d+|IR-\d+)$/);
+const workItemId = z
+  .string()
+  .regex(/^[A-Z][A-Z0-9]*-\d+$/)
+  .describe("Stable uppercase Work Item identifier, such as DEMO-001.");
+const decisionId = z
+  .string()
+  .regex(/^D-\d{2}$/)
+  .describe("Immutable Decision identifier in D-01 format.");
+const decisionOptionId = z
+  .string()
+  .regex(/^D-\d{2}\/[A-Z]$/)
+  .describe(
+    "Complete immutable Decision Option identifier, such as D-01/A. Never use A alone.",
+  );
+const planItemId = z
+  .string()
+  .regex(/^P-\d{2}$/)
+  .describe("Immutable Plan Item identifier in P-01 format.");
+const implementationResultId = z
+  .string()
+  .regex(/^IR-\d{2}$/)
+  .describe("Immutable Implementation Result identifier in IR-01 format.");
+const artifactId = z.union([
+  decisionId,
+  decisionOptionId,
+  planItemId,
+  implementationResultId,
+]);
 const expectedDocumentHash = z.string().regex(/^[a-f0-9]{64}$/i);
 
 export const evidenceSchema = z
@@ -21,7 +48,7 @@ export const openWorkItemSchema = z.object({
     .string()
     .min(1)
     .describe("Absolute path to the active repository."),
-  workItemId: z.string().min(1).describe("Stable work-item identifier."),
+  workItemId,
   title: z.string().min(1),
   source: z.string().url().nullable(),
   brief: z.object({
@@ -34,7 +61,7 @@ export const openWorkItemSchema = z.object({
 });
 
 const decisionOptionSchema = z.object({
-  id: artifactId,
+  id: decisionOptionId,
   label: z.string().min(1),
   explanation: z.string().min(1),
   concreteEffects: z.array(z.string().min(1)).min(1),
@@ -43,44 +70,44 @@ const decisionOptionSchema = z.object({
 });
 
 export const presentDecisionSchema = expectedDocumentHashSchema.extend({
-  workItemId: z.string().min(1),
+  workItemId,
   decision: z.object({
-    id: artifactId.regex(/^D-\d+$/),
+    id: decisionId,
     question: z.string().min(1),
     context: z.string().min(1),
     options: z.array(decisionOptionSchema).min(2).max(3),
-    recommendationOptionId: artifactId.regex(/^D-\d+\/[A-Z]+$/),
+    recommendationOptionId: decisionOptionId,
     recommendationReason: z.string().min(1),
   }),
 });
 
 export const presentPlanSchema = expectedDocumentHashSchema.extend({
-  workItemId: z.string().min(1),
+  workItemId,
   document: z.string().min(1),
   items: z
     .array(
       z.object({
-        id: artifactId.regex(/^P-\d+$/),
+        id: planItemId,
         title: z.string().min(1),
         outcome: z.string().min(1),
-        decisionRefs: z.array(artifactId.regex(/^D-\d+$/)).min(1),
+        decisionRefs: z.array(decisionId).min(1),
       }),
     )
     .min(1),
 });
 
 export const beginPlanItemSchema = expectedDocumentHashSchema.extend({
-  workItemId: z.string().min(1),
-  planItemId: artifactId.regex(/^P-\d+$/),
+  workItemId,
+  planItemId,
   activityPhrase: z.string().min(1).max(120),
 });
 
 export const reportImplementationItemSchema = expectedDocumentHashSchema.extend(
   {
-    workItemId: z.string().min(1),
-    planItemId: artifactId.regex(/^P-\d+$/),
+    workItemId,
+    planItemId,
     result: z.object({
-      id: artifactId.regex(/^IR-\d+$/),
+      id: implementationResultId,
       actualResult: z.string().min(1),
       deviation: z.string().min(1).nullable(),
       evidence: z.array(evidenceSchema).min(1),
@@ -88,11 +115,11 @@ export const reportImplementationItemSchema = expectedDocumentHashSchema.extend(
   },
 );
 
-export const presentReviewSchema = z.object({ workItemId: z.string().min(1) });
+export const presentReviewSchema = z.object({ workItemId });
 
 export const publishInvestigationConclusionSchema =
   expectedDocumentHashSchema.extend({
-    workItemId: z.string().min(1),
+    workItemId,
     owner: z.object({
       type: z.enum([
         "work_item",
@@ -111,7 +138,7 @@ export const publishInvestigationConclusionSchema =
   });
 
 export const presentHandoffSchema = expectedDocumentHashSchema.extend({
-  workItemId: z.string().min(1),
+  workItemId,
   handoff: z.object({
     outcome: z.array(z.string().min(1)).min(1),
     decisions: z.array(z.string().min(1)),
@@ -123,7 +150,7 @@ export const presentHandoffSchema = expectedDocumentHashSchema.extend({
 });
 
 export const recordHandoffSiteSchema = expectedDocumentHashSchema.extend({
-  workItemId: z.string().min(1),
+  workItemId,
   publicationAttemptToken: z.string().min(1),
   url: z
     .string()

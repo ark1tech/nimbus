@@ -41,7 +41,8 @@ if (plugin.skills !== "./skills/" || plugin.mcpServers !== "./.mcp.json") {
 if (
   !nimbusSkill.includes("attaches the Nimbus plugin") ||
   !nimbusSkill.includes("Nimbus owns the workflow") ||
-  !nimbusSkill.includes("Do not invoke generic workflow skills")
+  !nimbusSkill.includes("Do not invoke generic workflow skills") ||
+  !nimbusSkill.includes("Never claim an artifact was presented")
 ) {
   throw new Error(
     "Nimbus skill must activate from plugin attachment and take precedence over generic workflow skills.",
@@ -74,10 +75,10 @@ for (const prompt of pluginInterface.defaultPrompt) {
     typeof prompt !== "string" ||
     prompt.trim().length === 0 ||
     prompt.length > 128 ||
-    !prompt.startsWith("$nimbus ")
+    prompt.includes("$nimbus")
   ) {
     throw new Error(
-      "Every starter prompt must explicitly invoke $nimbus and contain at most 128 characters.",
+      "Attached-plugin starter prompts must omit redundant $nimbus text and contain at most 128 characters.",
     );
   }
 }

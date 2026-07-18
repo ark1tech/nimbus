@@ -38,7 +38,8 @@ export function registerNimbusTools(
     "open_work_item",
     {
       title: "Open Nimbus Work Item",
-      description: "Create or resume a Work Item and open Nimbus.",
+      description:
+        "Create or resume a Work Item and open Nimbus. Use a stable uppercase Work Item ID such as DEMO-001.",
       inputSchema: openWorkItemSchema.shape,
     },
     async (input) =>
@@ -49,7 +50,7 @@ export function registerNimbusTools(
     {
       title: "Present Nimbus Decision",
       description:
-        "Present one Grill decision and wait for an option selection.",
+        "Present one Grill decision and wait for an option selection. Every option ID must include its Decision prefix, such as D-01/A; never use A alone.",
       inputSchema: presentDecisionSchema.shape,
     },
     async (input) =>

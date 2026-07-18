@@ -52,6 +52,23 @@ async function assertTools(
       );
     }
 
+    const openWorkItemTool = response.tools.find(
+      (tool) => tool.name === "open_work_item",
+    );
+    const presentDecisionTool = response.tools.find(
+      (tool) => tool.name === "present_decision",
+    );
+    if (!JSON.stringify(openWorkItemTool).includes("DEMO-001")) {
+      throw new Error(
+        "open_work_item must advertise an explicit stable Work Item ID example.",
+      );
+    }
+    if (!JSON.stringify(presentDecisionTool).includes("D-01/A")) {
+      throw new Error(
+        "present_decision must advertise the complete immutable Decision Option ID format.",
+      );
+    }
+
     return actualTools.length;
   } finally {
     await client.close();

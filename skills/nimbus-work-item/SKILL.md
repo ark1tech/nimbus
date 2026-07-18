@@ -22,6 +22,8 @@ When the user invokes `$nimbus` or attaches the Nimbus plugin, Nimbus owns the w
   That skill remains subordinate to the active Nimbus Phase and must report its result through Nimbus.
 - If Nimbus MCP tools are unavailable, stop and report the plugin activation error. Never fall back to
   direct workspace implementation.
+- If a Nimbus tool rejects correctable input, fix the input and retry the call before ending the turn.
+  Never claim an artifact was presented or is awaiting browser action unless the MCP call succeeded.
 - The Nimbus browser is opened by `open_work_item`; no separate browser CLI or browser skill is required.
 
 ## Fixed method

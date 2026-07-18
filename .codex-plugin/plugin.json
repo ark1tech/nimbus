@@ -1,6 +1,6 @@
 {
   "name": "nimbus",
-  "version": "0.1.0+codex.20260718082305",
+  "version": "0.1.0+codex.20260718083102",
   "description": "Guide Codex work through grilling, planning, implementation, review, and an evidence-backed handoff.",
   "author": {
     "name": "Nimbus"
@@ -20,9 +20,9 @@
     "shortDescription": "Guide one evidence-backed Codex Work Item",
     "longDescription": "A local browser control plane for explicit $nimbus workflows: grill consequential choices, approve a plan, map implementation evidence, reconcile the result, and prepare or publish a handoff.",
     "defaultPrompt": [
-      "$nimbus Add server-side sessions so users stay signed in across browser restarts and can revoke other devices.",
-      "$nimbus Add role-based access control so admins manage teammates while members only access assigned projects.",
-      "$nimbus Add a searchable activity feed with filters for actor, action, project, and date."
+      "Add server-side sessions so users stay signed in across browser restarts and can revoke other devices.",
+      "Add role-based access control so admins manage teammates while members only access assigned projects.",
+      "Add a searchable activity feed with filters for actor, action, project, and date."
     ],
     "developerName": "Nimbus",
     "category": "Developer Tools",
